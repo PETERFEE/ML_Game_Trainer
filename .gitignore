@@ -1,0 +1,26 @@
+# Python specific
+__pycache__/
+*.pyc
+*.pyd
+.Python/
+env/
+venv/
+*.env
+.idea/  # For PyCharm/IntelliJ users
+
+# Pygame specific
+*.log
+
+# PyInstaller artifacts
+build/
+dist/
+*.spec
+
+# PyTorch models (if they get very large or you don't want to track them)
+# If your model.pth is small and you want to share it, you can remove this line.
+# model/
+# *.pth
+
+# Operating System files
+.DS_Store # macOS
+Thumbs.db # Windows
