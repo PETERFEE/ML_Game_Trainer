@@ -1,6 +1,8 @@
+# cnn_qnet.py
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import os # For saving model
 
 class CNN_QNet(nn.Module):
     def __init__(self, input_shape: tuple[int, int, int], output_size: int):
@@ -15,17 +17,14 @@ class CNN_QNet(nn.Module):
         super().__init__()
         self.input_channels, self.input_height, self.input_width = input_shape
         self.output_size = output_size
+        # Store the device the model is on
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
         # Convolutional Layers (example architecture, tune as needed for your specific pixel inputs)
-        # These layers take an image (C, H, W) and output a feature map.
-        # The output dimensions depend on kernel_size and stride.
-        # Common architecture for 84x84 grayscale inputs from DQN papers:
         self.conv1 = nn.Conv2d(self.input_channels, 32, kernel_size=8, stride=4)
         self.conv2 = nn.Conv2d(32, 64, kernel_size=4, stride=2)
         self.conv3 = nn.Conv2d(64, 64, kernel_size=3, stride=1)
 
-        # Calculate the size of the flattened output from the last convolutional layer
-        # This is crucial for connecting to the linear layers.
         self._linear_input_size = self._get_conv_output_flattened_size(input_shape)
 
         # Fully Connected (Linear) Layers
@@ -37,9 +36,8 @@ class CNN_QNet(nn.Module):
         Helper function to dynamically calculate the input size for the first fully connected layer
         after the convolutional layers. This runs a dummy tensor through the conv layers.
         """
-        dummy_input = torch.autograd.Variable(torch.rand(1, *input_shape))
+        dummy_input = torch.autograd.Variable(torch.rand(1, *input_shape)).to(self.device) # Move dummy to device
         output_features = self._forward_conv(dummy_input)
-        # Flatten the output and return the total number of features
         return output_features.view(output_features.size(0), -1).size(1)
 
     def _forward_conv(self, x: torch.Tensor) -> torch.Tensor:
@@ -60,3 +58,10 @@ class CNN_QNet(nn.Module):
         x = self.fc2(x)
         return x
 
+    def save(self, file_name='model.pth'):
+        model_folder_path = './model'
+        if not os.path.exists(model_folder_path):
+            os.makedirs(model_folder_path)
+
+        file_name = os.path.join(model_folder_path, file_name)
+        torch.save(self.state_dict(), file_name)

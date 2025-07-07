@@ -1,16 +1,17 @@
+# Linear_QNet.py
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
-
-import os
-
+import os # For saving model
 
 class Linear_QNet(nn.Module):
     def __init__(self, input_size, hidden_size, output_size):
         super().__init__()
         self.linear1 = nn.Linear(input_size, hidden_size)
         self.linear2 = nn.Linear(hidden_size, output_size)
+        self.output_size = output_size # Store output size for agent
+        # Store the device the model is on
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     def forward(self, x):
         x = F.relu(self.linear1(x))
