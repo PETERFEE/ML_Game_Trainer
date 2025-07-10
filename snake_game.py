@@ -33,10 +33,8 @@ class SnakeGameAI(BaseGameAI):
 
         self.w = w
         self.h = h
-        self.display = pygame.display.set_mode((self.w, self.h))
-        pygame.display.set_caption('Snake')
-        
-        pygame.display.set_caption('Snake - Close via UI window')
+        self.display = pygame.display.set_mode((self.w, self.h), pygame.RESIZABLE)
+        pygame.display.set_caption('Snake Game - Close via UI window')
         
         self.clock = pygame.time.Clock()
         self.current_speed = 100
@@ -159,7 +157,21 @@ class SnakeGameAI(BaseGameAI):
         return self.score
 
     def render(self) -> None:
-        self._update_ui()
+        win_w, win_h = self.display.get_size()
+        offset_x = (win_w - self.w) // 2 if win_w > self.w else 0
+        offset_y = (win_h - self.h) // 2 if win_h > self.h else 0
+        self.display.fill(BACKGROUND_COLOR)
+
+        for i, pt in enumerate(self.snake):
+            color = SNAKE_COLOR1 if i == 0 else SNAKE_COLOR2
+            pygame.draw.rect(self.display, color, pygame.Rect(pt.x+offset_x, pt.y+offset_y, BLOCK_SIZE, BLOCK_SIZE))
+
+        if self.food is not None:
+            pygame.draw.rect(self.display, FOOD_COLOR, pygame.Rect(self.food.x+offset_x, self.food.y+offset_y, BLOCK_SIZE, BLOCK_SIZE))
+
+        text = self.font.render("Score: " + str(self.score), True, FONT_COLOR)
+        self.display.blit(text, [0+offset_x, 0+offset_y])
+        pygame.display.flip()
 
     def close(self) -> None:
         pygame.quit()

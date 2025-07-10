@@ -12,6 +12,11 @@ from game_runner import run_game_thread
 from game_interface import BaseGameAI
 from snake_game import SnakeGameAI
 from pong_game import PongGameAI
+from flappy_bird_game import FlappyBirdGameAI
+from tetris_game import TetrisGameAI
+from galaga_game import GalagaGameAI
+from dino_run_game import DinoRunGameAI
+from packman_game import PackmanGameAI
 
 # Global queues for thread communication
 game_command_queue = queue.Queue()
@@ -45,6 +50,21 @@ def start_training_session(game_selection: str):
     elif game_selection == "pong":
         game = PongGameAI()
         print("Starting Pong Game AI...")
+    elif game_selection == "flappy":
+        game = FlappyBirdGameAI()
+        print("Starting Flappy Bird Game AI...")
+    elif game_selection == "tetris":
+        game = TetrisGameAI()
+        print("Starting Tetris Game AI...")
+    elif game_selection == "galaga":
+        game = GalagaGameAI()
+        print("Starting Galaga Game AI...")
+    elif game_selection == "dino":
+        game = DinoRunGameAI()
+        print("Starting Dino Run Game AI...")
+    elif game_selection == "packman":
+        game = PackmanGameAI()
+        print("Starting Packman Game AI...")
     else:
         raise ValueError(
             f"Unknown game selection: '{game_selection}'. "

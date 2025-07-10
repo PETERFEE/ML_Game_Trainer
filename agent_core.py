@@ -24,9 +24,13 @@ print(f"Using device for PyTorch: {device} (from agent_core.py)")
 class Agent:
     def __init__(self, input_shape: tuple[int, ...], output_size: int, is_image_input: bool = False):
         self.n_games = 0
-        self.epsilon = 0 # Randomness
+        self.epsilon = 1.0 # Randomness
         self.gamma = 0.9 # Discount rate
-        self.memory = deque(maxlen=MAX_MEMORY) # popleft()
+        self.memory = deque(maxlen=100_000) # popleft()
+        self.batch_size = 128 # Larger batch size
+        self.lr = 0.0005  # Lower learning rate for Pong
+        self.epsilon_min = 0.01
+        self.epsilon_decay = 0.995  # Slower decay for more exploration
 
         self.input_shape = input_shape
         self.output_size = output_size
@@ -44,20 +48,25 @@ class Agent:
             self.model = Linear_QNet(self.input_shape[0], 256, self.output_size).to(device)
             print(f"Agent using Linear_QNet with input size {self.input_shape[0]}")
 
-        self.trainer = QTrainer(self.model, lr=LR, gamma=self.gamma)
+        self.trainer = QTrainer(self.model, lr=self.lr, gamma=self.gamma)
 
         # Model loading logic (consider making model saving/loading more robust for different games)
-        model_file_path = resource_path(os.path.join('model', 'model.pth'))
-        if os.path.exists(model_file_path):
-            try:
-                self.model.load_state_dict(torch.load(model_file_path, map_location=device))
-                self.model.eval() # Set model to evaluation mode
-                print(f"Loaded trained model from: {model_file_path} to {device}")
-            except Exception as e:
-                print(f"Error loading model from {model_file_path}: {e}")
-                print("Starting with a new untrained model.")
-        else:
-            print(f"No trained model found at {model_file_path}. Starting with a new untrained model.")
+        try:
+            model_path = resource_path(os.path.join('model', 'model.pth'))
+            self.model.load_state_dict(torch.load(model_path, map_location=device))
+            print(f"Loaded trained model from: {model_path} to {device}")
+        except RuntimeError as e:
+            if 'size mismatch' in str(e) or 'shapes cannot be multiplied' in str(e):
+                print(f"Model shape mismatch for {model_path}: {e}\nDeleting incompatible model file and starting with a new untrained model.")
+                try:
+                    os.remove(model_path)
+                    print(f"Deleted incompatible model file: {model_path}")
+                except Exception as del_e:
+                    print(f"Failed to delete model file: {model_path}. Error: {del_e}")
+            else:
+                print(f"Error loading model from {model_path}: {e}\nStarting with a new untrained model.")
+        except Exception as e:
+            print(f"Error loading model from {model_path}: {e}\nStarting with a new untrained model.")
 
     def remember(self, state, action, reward, next_state, done):
         """Stores a transition in the agent's memory."""
@@ -65,8 +74,8 @@ class Agent:
 
     def train_long_memory(self):
         """Trains the model using a batch from long-term memory."""
-        if len(self.memory) > BATCH_SIZE:
-            mini_sample = random.sample(self.memory, BATCH_SIZE)
+        if len(self.memory) > self.batch_size:
+            mini_sample = random.sample(self.memory, self.batch_size)
         else:
             mini_sample = self.memory
         states, actions, rewards, next_states, dones = zip(*mini_sample)
@@ -82,7 +91,7 @@ class Agent:
         Returns an integer representing the chosen action index.
         """
         # Trade-off exploration / exploitation
-        self.epsilon = 80 - self.n_games # Decrease epsilon over time
+        self.epsilon = max(self.epsilon_min, self.epsilon * self.epsilon_decay)
         
         num_actions = self.output_size 
         final_move_idx = 0 # Default to action 0
